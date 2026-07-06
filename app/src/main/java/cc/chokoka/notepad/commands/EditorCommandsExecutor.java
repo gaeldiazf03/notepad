@@ -6,11 +6,23 @@ package cc.chokoka.notepad.commands;
 
 public interface EditorCommandsExecutor {
 
+    void runTimeCommand(TimeCommand timeCommand);
+
     void runFindCommand(FindCommandTask findTask);
 
     void runSubstituteCommand(SubstituteCommandTask substituteTask);
 
     default boolean runEditorCommand(String command, String content, int cursor) {
+        final boolean ranTime = EditorCommandParser.parseTime(command)
+                .map(time -> {
+                    runTimeCommand(time);
+                    return true;
+                })
+                .orElse(false);
+        if (ranTime) {
+            return true;
+        }
+
         return EditorCommandParser.parse(command).map(either -> {
             either.forEach(
                     find -> runFindCommand(new FindCommandTask(find.toFind(), content, cursor)),

@@ -42,6 +42,10 @@ public final class EditorCommandParser {
         }
     }
 
+    public static Optional<TimeCommand> parseTime(String command) {
+        return TimeCommand.parse(command);
+    }
+
     private static SubstituteCommand deleteAll(String command) {
         final String toDelete = command.substring(2);
         return new SubstituteCommand(SubstituteCommand.ALL, toDelete, "");

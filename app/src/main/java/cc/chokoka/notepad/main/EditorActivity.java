@@ -17,9 +17,8 @@ import android.os.Bundle;
 import android.os.Parcelable;
 import android.text.Editable;
 import android.text.PrecomputedText;
+import android.text.Selection;
 import android.text.TextWatcher;
-import android.text.style.CharacterStyle;
-import android.text.style.MetricAffectingSpan;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.KeyEvent;
@@ -45,6 +44,8 @@ import androidx.annotation.StringRes;
 
 import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
+import java.time.LocalDateTime;
+import java.util.Locale;
 import java.util.Optional;
 
 import cc.chokoka.notepad.R;
@@ -52,6 +53,7 @@ import cc.chokoka.notepad.auto.AutoPair;
 import cc.chokoka.notepad.commands.EditorCommandsExecutor;
 import cc.chokoka.notepad.commands.FindCommandTask;
 import cc.chokoka.notepad.commands.SubstituteCommandTask;
+import cc.chokoka.notepad.commands.TimeCommand;
 import cc.chokoka.notepad.config.Config;
 import cc.chokoka.notepad.config.EditorConfig;
 import cc.chokoka.notepad.config.EditorConfigListener;
@@ -59,6 +61,7 @@ import cc.chokoka.notepad.help.EditorHelpActivity;
 import cc.chokoka.notepad.history.EditorHistory;
 import cc.chokoka.notepad.io.DetectEolTask;
 import cc.chokoka.notepad.io.EditorFile;
+import cc.chokoka.notepad.io.EditorFileNameFormatter;
 import cc.chokoka.notepad.io.EditorFileLoaderTask;
 import cc.chokoka.notepad.io.EditorFileReaderTask;
 import cc.chokoka.notepad.io.EditorFileTooLargeException;
@@ -309,11 +312,6 @@ public final class EditorActivity extends Activity implements
 
     @Override
     public void afterTextChanged(Editable s) {
-        final CharacterStyle[] toRemove = s.getSpans(0, s.length(),
-                MetricAffectingSpan.class);
-        for (final CharacterStyle span : toRemove) {
-            s.removeSpan(span);
-        }
         setDirty();
     }
 
@@ -438,11 +436,8 @@ public final class EditorActivity extends Activity implements
     }
 
     private void openFileSaver(boolean quitWhenSaved) {
-        String title = textEditorView.getText().toString();
-        if (title.length() > 20) {
-            title = title.substring(0, 20);
-        }
-        title = title.replace('\n', ' ') + ".txt";
+        final String title = EditorFileNameFormatter
+                .toDefaultMarkdownName(textEditorView.getText().toString());
 
         final Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT)
                 .addCategory(Intent.CATEGORY_OPENABLE)
@@ -703,6 +698,37 @@ public final class EditorActivity extends Activity implements
                     textEditorView.setSelection(range.getLower(), range.getUpper());
                 },
                 () -> showTmpMessage(R.string.command_find_none));
+    }
+
+    @Override
+    public void runTimeCommand(TimeCommand timeCommand) {
+        final Editable editable = textEditorView.getEditableText();
+        if (editable == null) {
+            return;
+        }
+
+        final String inserted = timeCommand.toText(LocalDateTime.now(), Locale.getDefault());
+
+        int selectionStart = Selection.getSelectionStart(editable);
+        int selectionEnd = Selection.getSelectionEnd(editable);
+        if (selectionStart < 0 || selectionEnd < 0) {
+            selectionStart = textEditorView.getSelectionStart();
+            selectionEnd = textEditorView.getSelectionEnd();
+        }
+
+        if (selectionStart < 0) {
+            selectionStart = editable.length();
+        }
+        if (selectionEnd < 0) {
+            selectionEnd = selectionStart;
+        }
+
+        final int from = Math.max(0, Math.min(selectionStart, selectionEnd));
+        final int to = Math.max(from, Math.max(selectionStart, selectionEnd));
+
+        editable.replace(from, to, inserted);
+        Selection.setSelection(editable, Math.min(from + inserted.length(), editable.length()));
+        textEditorView.requestFocus();
     }
 
     @Override

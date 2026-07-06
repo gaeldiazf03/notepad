@@ -22,7 +22,6 @@ public final class AutoPair implements TextWatcher {
     static {
         PAIR_MAP.put('\'', "'");
         PAIR_MAP.put('"', "\"");
-        PAIR_MAP.put('`', "`");
         PAIR_MAP.put('(', ")");
         PAIR_MAP.put('[', "]");
         PAIR_MAP.put('{', "}");
