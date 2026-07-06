@@ -141,6 +141,7 @@ public final class MarkdownFormatter {
             while (lineEnd < n && out.charAt(lineEnd) != '\n') {
                 lineEnd++;
             }
+            final int lineSpanEnd = Math.min(lineEnd < n ? lineEnd + 1 : lineEnd, out.length());
 
             if (lineEnd - lineStart > 2) {
                 final char first = out.charAt(lineStart);
@@ -149,8 +150,8 @@ public final class MarkdownFormatter {
                     final int contentStart = lineStart + 2;
                     if (contentStart < lineEnd) {
                         out.setSpan(new BulletSpan(LIST_GAP_WIDTH),
-                                contentStart,
-                                lineEnd,
+                                lineStart,
+                                lineSpanEnd,
                                 Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     }
                     hideSyntax(out, lineStart, contentStart);
@@ -159,8 +160,8 @@ public final class MarkdownFormatter {
                     if (markerEnd > lineStart) {
                         out.setSpan(new LeadingMarginSpan.Standard(ORDERED_LIST_MARGIN,
                                         ORDERED_LIST_MARGIN),
-                                markerEnd,
-                                lineEnd,
+                                lineStart,
+                                lineSpanEnd,
                                 Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                         hideSyntax(out, lineStart, markerEnd);
                     }
@@ -251,7 +252,8 @@ public final class MarkdownFormatter {
 
             final int urlClose = indexOf(out, ")", textClose + 2, n);
             if (urlClose < 0) {
-                return;
+                from = textClose + 1;
+                continue;
             }
 
             final int textStart = textOpen + 1;
@@ -318,7 +320,7 @@ public final class MarkdownFormatter {
                 start,
                 end,
                 Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        out.setSpan(new RelativeSizeSpan(0f),
+        out.setSpan(new RelativeSizeSpan(0.001f),
                 start,
                 end,
                 Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
